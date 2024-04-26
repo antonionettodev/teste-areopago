@@ -23,6 +23,7 @@ const start = async (): Promise<void> => {
 
   const nextApp = next({
     dev: process.env.NODE_ENV !== 'production',
+    dir: path.join(__dirname, '../'),
   })
 
   const nextHandler = nextApp.getRequestHandler()
