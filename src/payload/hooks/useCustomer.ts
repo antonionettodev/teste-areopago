@@ -28,12 +28,14 @@ export const useCustomerChange: CollectionAfterChangeHook = async ({ doc, operat
 }
 
 export const useCustomerDelete: CollectionAfterDeleteHook = async ({ doc }) => {
-  try {
-  const response = await sendFinanceRequest(`customers/${doc.financeId}`, 'DELETE');
-  if(response) {
-    console.log(response);
-  }
-  } catch (error) {
-    console.error(error);
+  if(doc.financeId) {
+    try {
+      const response = await sendFinanceRequest(`customers/${doc.financeId}`, 'DELETE');
+      if(response) {
+        console.log(response);
+      }
+      } catch (error) {
+        console.error(error);
+      }
   }
 }

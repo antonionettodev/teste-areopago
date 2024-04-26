@@ -28,14 +28,14 @@ export const getLocalCoordinates = async (local: string) => {
   }
 }
 
-export const compareLocalDistances = async (origin: LatLng, destination: LatLng) => {
+export const getLocalDistances = async (origin: LatLng, destination: LatLng) => {
   const distanceURL = `${baseURL}/directions/json?origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&key=${accessToken}`;
   const options = requestOptions(distanceURL)
 
   try {
     const response = await axios.request(options)
-    console.log(response.data);
-    return response.data;
+    const distance = response.data.routes[0].legs[0].distance.value;
+    return distance;
   } catch (error) {
     console.error(error.response ? error.response.data : error);
     throw error;

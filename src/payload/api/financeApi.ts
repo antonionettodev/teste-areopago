@@ -24,9 +24,9 @@ export const getPixKeys = async(keyId = '') => {
   }
 }
 
-export const sendFinanceRequest = async (endpoint: string, method: string, data = {}, headers = {}) => {
+export const sendFinanceRequest = async (endpoint: string, method: string = 'GET', data?: object, headers?: object) => {
   const options = {
-    method: method || 'GET', 
+    method: method, 
     url: `${baseURL}/${endpoint}`,
     headers: {
       accept: 'application/json',
@@ -39,7 +39,6 @@ export const sendFinanceRequest = async (endpoint: string, method: string, data 
 
   try {
     const response = await axios.request(options);
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error(error.response ? error.response.data : error);

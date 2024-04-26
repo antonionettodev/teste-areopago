@@ -1,14 +1,15 @@
-import { CollectionConfig } from "payload/types";
-import errorMessages from "../utils/errorMessages";
-import { useLocalizationConvert } from "../hooks/useLocalization";
-import { useCreatePixQRCode } from "../hooks/usePix";
+import { CollectionConfig } from 'payload/types';
+import errorMessages from '../utils/errorMessages';
+import { useLocalizationConvert } from '../hooks/useLocalization';
+import { useCreatePixQRCode, useGetTotalRaisedPix } from '../hooks/usePix';
 
 const Events: CollectionConfig = {
   slug: 'events',
   hooks: {
     afterChange: [
       useLocalizationConvert,
-      useCreatePixQRCode
+      useCreatePixQRCode,
+      useGetTotalRaisedPix,
     ],
   },
   admin: {
@@ -69,9 +70,17 @@ const Events: CollectionConfig = {
     },
     {
       name: 'geoLocal',
+      label: 'Coordenadas do Evento',
       type: 'point',
       admin: {
-        disabled: true,
+        readOnly: true,
+        condition: (data) => {
+          if(data.local) {
+            return true;
+          } else {
+            return false;
+          };
+        },
       }
     },
     {
@@ -149,6 +158,20 @@ const Events: CollectionConfig = {
       type: 'relationship',
       relationTo: 'members',
       hasMany: true,
+      validate: async (presences, {payload, data}) => {
+        const {masonicDegree: eventMasonicDegree} = data;
+        for (const presence of presences) {
+          const member = await payload.findByID({
+            collection: 'members',
+            id: presence,
+          });
+
+          if(member.masonicDegree < eventMasonicDegree) {
+            return `O Membro ${member.name} não tem o grau necessário para esse evento.`
+          }
+        }
+        return true;
+      }
     },
     {
       name: 'tags',
@@ -161,30 +184,66 @@ const Events: CollectionConfig = {
       name: 'financeInfo',
       label: 'Informações Financeiras do Evento',
       type: 'group',
-      unique: true,
       admin: {
-        readOnly: true,
         condition: (data) => {
           if (data.type === 'meeting') {
-            return true;
+            return true
           } else {
-            return false;
+            return false
           }
-        }
+        },
       },
       fields: [
+        {
+          name: 'financeStatus',
+          label: 'Status das Doações',
+          type: 'select',
+          options: [
+            {
+              label: 'Aberto',
+              value: 'open'
+            },
+            {
+              label: 'Fechado',
+              value: 'closed',
+            },
+          ],
+          defaultValue: 'closed',
+        },
+        {
+          name: 'qrCodeId',
+          label: 'ID do QR Code',
+          type: 'text',
+          admin: {
+            readOnly: true,
+          },
+        },
         {
           name: 'qrCodeImage',
           label: 'Imagem do QR Code',
           type: 'text',
+          admin: {
+            readOnly: true,
+          },
         },
         {
           name: 'qrCodePayload',
           label: 'Payload do QR Code',
           type: 'text',
+          admin: {
+            readOnly: true,
+          },
         },
-      ]
-    }
+        {
+          name: 'totalRaised',
+          label: 'Total Arrecadado',
+          type: 'number',
+          admin: {
+            readOnly: true,
+          },
+        }
+      ],
+    },
   ],
 }
 

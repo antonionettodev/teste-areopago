@@ -27,3 +27,16 @@ export function removeNonNumeric(text: string): string {
 export function removePunctuationMarks(text: string): string {
   return text.replace(regexPatterns.punctuationMarks, '');
 };
+
+export function formatAsaasDate(date: Date): string {
+  const pad = (num: number): string => num.toString().padStart(2, '0');
+
+  const year: string = date.getFullYear().toString();
+  const month: string = pad(date.getMonth() + 1);
+  const day: string = pad(date.getDate());
+  const hours: string = pad(date.getHours());
+  const minutes: string = pad(date.getMinutes());
+  const seconds: string = pad(date.getSeconds());
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}

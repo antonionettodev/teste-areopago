@@ -1,8 +1,9 @@
 import { CollectionAfterChangeHook } from 'payload/types';
 import { getPixKeys, sendFinanceRequest } from '../api/financeApi';
+import { formatAsaasDate } from '../utils/formatters';
 
 export const useCreatePixQRCode: CollectionAfterChangeHook = async ({doc, req, operation}) => {
-  if(operation === 'create') {
+  if(operation === 'create' && doc.type === 'meeting') {
     try {
       const pixResponse = await getPixKeys();
       if (pixResponse?.data?.length === 0) {
@@ -12,19 +13,21 @@ export const useCreatePixQRCode: CollectionAfterChangeHook = async ({doc, req, o
 
       const expirationDate = new Date(doc.dateHour);
       expirationDate.setDate(expirationDate.getDate() + 1);
+      const formattedDate = formatAsaasDate(expirationDate)
 
       const requestData = {
         addressKey: pixKey,
-        description: doc.title,
+        description: `Reunião - #${formattedDate}`,
         format: 'ALL',
-        expirationDate: expirationDate,
+        expirationDate: formattedDate,
         expirationSeconds: null,
         allowsMultiplePayments: true
       }
 
-      const response = await sendFinanceRequest('/pix/qrCodes/static', 'POST', requestData);
+      const response = await sendFinanceRequest('pix/qrCodes/static', 'POST', requestData);
       if (response) {
         const responseData = {
+          qrCodeId: response.id,
           qrCodeImage: response.encodedImage,
           qrCodePayload: response.payload
         }
@@ -36,8 +39,6 @@ export const useCreatePixQRCode: CollectionAfterChangeHook = async ({doc, req, o
             financeInfo: responseData,
           }
         })
-
-        console.log(response);
       }
       
     } catch (error) {
@@ -45,3 +46,32 @@ export const useCreatePixQRCode: CollectionAfterChangeHook = async ({doc, req, o
     }
   };
 };
+
+export const useGetTotalRaisedPix: CollectionAfterChangeHook = async({doc, previousDoc, operation, context, req}) => {
+  if (context.triggerAfterChange === false) {
+    return
+  }
+
+  if (operation === 'update' && doc.financeInfo.financeStatus !== previousDoc.financeInfo.financeStatus) {
+    try {
+      const response = await sendFinanceRequest('payments', 'GET')
+      if(response && response.data) {
+        const pixPayments = response.data.filter((payment) => payment.pixQrCodeId === doc.financeInfo.qrCodeId);
+        const totalRaised = pixPayments.reduce((acc, payment) => acc + payment.value, 0);
+        
+        await req.payload.update({
+          collection: 'events',
+          id: doc.id,
+          data: {
+            financeInfo: {
+              ...doc.financeIndo,
+              totalRaised: totalRaised,
+            },
+          },
+        });
+      }
+    } catch(error) {
+      console.error(error)
+    }
+  }
+}
